@@ -1,8 +1,0 @@
-name: "Uninstall Keptn"
-description: "Uninstall Keptn inside a Kubernetes context"
-runs:
-  using: "composite"
-  steps:
-    - name: "Uninstall Keptn binary"
-      run:
-        - "keptn uninstall --yes"

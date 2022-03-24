@@ -1,0 +1,62 @@
+name: Install/Uninstall Keptn
+description: Install or uninstall Keptn inside a Kubernetes context
+inputs: 
+  KEPTN_VERSION:   
+    description: The version of Keptn that should be installed (e.g. 0.13.1)
+    required: true
+  KEPTN_INSTALL_PARAMETERS:
+    description: Installation parameters for Keptn
+    required: false
+    default: --endpoint-service-type=LoadBalancer
+  KUBECONFIG:
+    description: The location of the kubernetes configuration file
+    required: false
+    default: $HOME/.kube/config
+  UNINSTALL:
+    description: If true the Keptn instance will be uninstalled from the kubernetes context
+    required: false
+    default: false
+outputs:
+  KEPTN_ENDPOINT:
+    description:  URI of the Keptn endpoint that can be used to communicate with Keptn
+    value: ${{ steps.ouput_keptn_env.outputs.KEPTN_ENDPOINT }}
+  KEPTN_API_TOKEN:
+    description: A API token needed for the communication with Keptn
+    value: ${{ steps.ouput_keptn_env.outputs.KEPTN_API_TOKEN }}
+runs:
+  using: "composite"
+  steps:
+    - name: Download & Install Keptn binary
+      shell: bash
+      if: ${{ inputs.UNINSTALL != 'true' }}
+      run: curl -sfL https://get.keptn.sh | KEPTN_VERSION=${{ inputs.KEPTN_VERSION }} bash -
+
+    - name: Setup Kubeconfig environment
+      shell: bash
+      run: echo "KUBECONFIG=${{ inputs.KUBECONFIG }}" >> $GITHUB_ENV  
+
+    - name: Install Keptn in cluster
+      shell: bash
+      if: ${{ inputs.UNINSTALL != 'true' }}
+      run: keptn install --yes ${{  inputs.KEPTN_INSTALL_PARAMETERS }}
+
+    - name: Uninstall Keptn from cluster
+      shell: bash
+      if: ${{ inputs.UNINSTALL == 'true' }}
+      run: keptn uninstall --yes
+
+    - name: Authenticate Keptn CLI
+      shell: bash
+      if: ${{ inputs.UNINSTALL != 'true' }}
+      run: keptn auth
+
+    - name: Output Keptn environment
+      id: ouput_keptn_env
+      shell: bash
+      if: ${{ inputs.UNINSTALL != 'true' }}
+      run: |
+        api_token=$(keptn auth --export | sed -nr  's/API Token:\s+(.*)/\1/p')
+        endpoint=$(keptn auth --export | sed -nr 's/Endpoint:\s+(.*)/\1/p')
+        echo "::add-mask::$api_token"
+        echo "::set-output name=KEPTN_API_TOKEN::$api_token"
+        echo "::set-output name=KEPTN_ENDPOINT::$endpoint"

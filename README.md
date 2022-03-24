@@ -4,19 +4,13 @@ _________________
 
 This repository contains GitHub Actions for installing and uninstalling Keptn inside a given kubernetes context.
 
-## Actions
-
-The following re-usable actions are available:
-
-| Name                    | Filename                                     | Description                        | Inputs                    | Outputs     |
-|-------------------------|----------------------------------------------|------------------------------------|---------------------------|-------------|
-| Install Keptn     | `actions/install/action.yaml`                | Installs keptn in the current kubernets context    | See [Install Keptn (k3s)](#install-keptn-k3s) | See [Install Keptn (k3s)](#install-keptn-k3s)           |
-| Uninstall Keptn         | `actions/uninstall/action.yaml`                     | Uninstalls keptn from the current kubernetes context | - | - |
-
 ### Install Keptn
 
 **Inputs**:
 * `KEPTN_VERSION`: The version of Keptn that should be installed (e.g. `0.13.1`)
+* `KEPTN_INSTALL_PARAMETERS`: Installation parameters that are used for installing Keptn. Defaults to `--endpoint-service-type=LoadBalancer --use-case=continuous-delivery`.
+* `KUBECONFIG`: The location of the kubernetes configuration file. Defaults to `$HOME/.kube/config`.
+* `UNINSTALL`: Set to `true` if the Keptn instance should be removed from the kubernetes cluster
 
 **Outputs**:
 * `KEPTN_ENDPOINT`: URI of the Keptn endpoint that can be used to communicate with Keptn
@@ -25,13 +19,14 @@ The following re-usable actions are available:
 **Example Usage**:
 ```yaml
       - name: Install and start K3s
-        run: curl -sfL https://get.k3s.io | sh -
+        run: curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" sh -
 
       - name: Install Keptn
         id: install_keptn
-        uses: keptn-sandbox/action-install-keptn/.github/actions/install@v1
+        uses: keptn-sandbox/action-install-keptn@main
         with:
           KEPTN_VERSION: "0.13.1"
+          KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
       - name: Connect to keptn
         run: echo "connect to ${{ steps.install_keptn.KEPTN_ENDPOINT }} - ${{ steps.install_keptn KEPTN_API_TOKEN }}"
@@ -43,5 +38,5 @@ The following re-usable actions are available:
 ```yaml
       - name: Uninstall Keptn
         id: uninstall_keptn
-        uses: keptn-sandbox/action-install-keptn/.github/actions/uninstall@v1
+        uses: keptn-sandbox/action-install-keptn@main
 ```
