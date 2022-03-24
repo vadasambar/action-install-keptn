@@ -1,6 +1,4 @@
 # Keptn install actions
-:warning: Work in progress :warning:
-_________________
 
 This repository contains GitHub Actions for installing and uninstalling Keptn inside a given kubernetes context.
 
