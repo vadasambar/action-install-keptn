@@ -6,13 +6,25 @@ This repository contains GitHub Actions for installing and uninstalling Keptn in
 
 **Inputs**:
 * `KEPTN_VERSION`: The version of Keptn that should be installed (e.g. `0.13.1`)
-* `KEPTN_INSTALL_PARAMETERS`: Installation parameters that are used for installing Keptn. Defaults to `--endpoint-service-type=LoadBalancer --use-case=continuous-delivery`.
+* `HELM_VALUES`: Helm values using during installation passed a properly formatted multiline YAML string.  Defaults to 
+```yaml
+      control-plane:
+        apiGatewayNginx:
+          type: LoadBalancer
+      continuous-delivery:
+        enabled: true
+``` 
 * `KUBECONFIG`: The location of the kubernetes configuration file. Defaults to `$HOME/.kube/config`.
 * `UNINSTALL`: Set to `true` if the Keptn instance should be removed from the kubernetes cluster
 
 **Outputs**:
-* `KEPTN_ENDPOINT`: URI of the Keptn endpoint that can be used to communicate with Keptn
+* `KEPTN_HTTP_ENDPOINT`: Endpoint (host(:port)) on which the api gateway of the installed Keptn is reachable. Could be empty if it was not possible to autodetect it.
+* `KEPTN_API_URL`: HTTP URL of the Keptn API endpoint. Could be empty if it was not possible to determine a KEPTN_ENDPOINT.
 * `KEPTN_API_TOKEN`: A API token needed for the communication with Keptn
+
+If the `control-plane.apiGatewayNginx.type` value is not `LoadBalancer` or `NodePort` the action does not return an endpoint since there's no way to determine an address (host:port pair) that would expose the Keptn api gateway to the outside of the kubernetes cluster.
+
+In such cases please refer to the [relevant keptn documentation](https://keptn.sh/docs/0.16.x/operate/install/#access-options) for your keptn version.
 
 **Example Usage**:
 ```yaml
@@ -37,4 +49,6 @@ This repository contains GitHub Actions for installing and uninstalling Keptn in
       - name: Uninstall Keptn
         id: uninstall_keptn
         uses: keptn-sandbox/action-install-keptn@main
+        with:
+          UNINSTALL: true
 ```

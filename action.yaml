@@ -2,12 +2,22 @@ name: Install/Uninstall Keptn
 description: Install or uninstall Keptn inside a Kubernetes context
 inputs: 
   KEPTN_VERSION:   
-    description: The version of Keptn that should be installed (e.g. 0.13.1)
-    required: true
-  KEPTN_INSTALL_PARAMETERS:
-    description: Installation parameters for Keptn
+    description: The version of Keptn that should be installed (e.g. 0.16.0) if not specified latest available version will be used
     required: false
-    default: --endpoint-service-type=LoadBalancer
+    default: ""
+  HELM_VALUES:
+    description: Helm values to set during install passed as a YAML multiline string
+    required: false
+    default: |-
+      control-plane:
+        apiGatewayNginx:
+          type: LoadBalancer
+      continuous-delivery:
+        enabled: true
+  KEPTN_NAMESPACE:
+    description: Kubernetes namespace where Keptn will be installed
+    required: false
+    default: keptn
   KUBECONFIG:
     description: The location of the kubernetes configuration file
     required: false
@@ -17,46 +27,94 @@ inputs:
     required: false
     default: false
 outputs:
-  KEPTN_ENDPOINT:
-    description:  URI of the Keptn endpoint that can be used to communicate with Keptn
-    value: ${{ steps.ouput_keptn_env.outputs.KEPTN_ENDPOINT }}
+  KEPTN_HTTP_ENDPOINT:
+    description: Endpoint (host(:port)) on which the api gateway of the installed Keptn is reachable. Could be empty if it was not possible to autodetect it.
+    value: ${{ steps.output_keptn_endpoint_env.outputs.KEPTN_HTTP_ENDPOINT }}
+  KEPTN_API_URL:
+    description:  HTTP URL of the Keptn API endpoint. Could be empty if it was not possible to autodetect a KEPTN_ENDPOINT.
+    value: ${{ steps.output_keptn_endpoint_env.outputs.KEPTN_API_URL }}
   KEPTN_API_TOKEN:
     description: A API token needed for the communication with Keptn
-    value: ${{ steps.ouput_keptn_env.outputs.KEPTN_API_TOKEN }}
+    value: ${{ steps.output_keptn_api_token_env.outputs.KEPTN_API_TOKEN }}
 runs:
   using: "composite"
   steps:
-    - name: Download & Install Keptn binary
-      shell: bash
-      if: ${{ inputs.UNINSTALL != 'true' }}
-      run: curl -sfL https://get.keptn.sh | KEPTN_VERSION=${{ inputs.KEPTN_VERSION }} bash -
-
     - name: Setup Kubeconfig environment
       shell: bash
       run: echo "KUBECONFIG=${{ inputs.KUBECONFIG }}" >> $GITHUB_ENV  
 
+    - name: Add Keptn Helm chart repository
+      shell: bash
+      run: helm repo add keptn https://charts.keptn.sh
+
     - name: Install Keptn in cluster
       shell: bash
       if: ${{ inputs.UNINSTALL != 'true' }}
-      run: keptn install --yes ${{  inputs.KEPTN_INSTALL_PARAMETERS }}
+      run: |
+       tee values.yaml << EOF
+       ${{ inputs.HELM_VALUES }}
+       EOF
+       cat values.yaml
+       helm install keptn keptn/keptn --wait --create-namespace -n ${{ inputs.KEPTN_NAMESPACE}} -f values.yaml --version "${{ inputs.KEPTN_VERSION }}"
 
     - name: Uninstall Keptn from cluster
       shell: bash
       if: ${{ inputs.UNINSTALL == 'true' }}
-      run: keptn uninstall --yes
+      run: helm uninstall keptn -n ${{ inputs.KEPTN_NAMESPACE}} --wait
 
-    - name: Authenticate Keptn CLI
-      shell: bash
-      if: ${{ inputs.UNINSTALL != 'true' }}
-      run: keptn auth
-
-    - name: Output Keptn environment
-      id: ouput_keptn_env
+    - name: Output Keptn API token to environment
+      id: output_keptn_api_token_env
       shell: bash
       if: ${{ inputs.UNINSTALL != 'true' }}
       run: |
-        api_token=$(keptn auth --export | sed -nr  's/API Token:\s+(.*)/\1/p')
-        endpoint=$(keptn auth --export | sed -nr 's/Endpoint:\s+(.*)/\1/p')
+        api_token=$(kubectl -n ${{inputs.KEPTN_NAMESPACE}} get secret keptn-api-token -o=jsonpath="{.data.keptn-api-token}" | base64 -d)
         echo "::add-mask::$api_token"
         echo "::set-output name=KEPTN_API_TOKEN::$api_token"
-        echo "::set-output name=KEPTN_ENDPOINT::$endpoint"
+
+    - name: Detect Keptn service endpoint type
+      id: detect_keptn_endpoint_type
+      shell: bash
+      if: ${{ inputs.UNINSTALL != 'true' }}
+      run: |
+        endpoint_t=$(kubectl -n ${{inputs.KEPTN_NAMESPACE}} get service api-gateway-nginx -o=jsonpath="{.spec.type}")
+        echo "Endpoint type: $endpoint_t"
+        echo ::set-output name=endpoint_type::$endpoint_t
+
+    - name: Output Keptn endpoint to environment (LoadBalancer)
+      id: output_keptn_endpoint_env
+      shell: bash
+      if: ${{ inputs.UNINSTALL != 'true' }}
+      run: |
+        if [ ${{ steps.detect_keptn_endpoint_type.outputs.endpoint_type }} == 'LoadBalancer' ]; then
+          for i in {0..60}; do
+            ext_ip=$(kubectl -n ${{inputs.KEPTN_NAMESPACE}} get service api-gateway-nginx -o=jsonpath="{.status.loadBalancer.ingress[0].ip}")
+            if [ "$ext_ip" != "" ]; then
+              port=$(kubectl -n keptn get service api-gateway-nginx -o=jsonpath="{.spec.ports[?(@.name==\"http\")].port}")
+              echo "::set-output name=KEPTN_API_URL::"http://$ext_ip:$port/api""
+              echo "::set-output name=KEPTN_HTTP_ENDPOINT::"$ext_ip:$port""
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ext_ip" == "" ]; then
+            echo "Could not determine external endpoint for Keptn!"
+            exit 1
+          fi
+        elif [ ${{ steps.detect_keptn_endpoint_type.outputs.endpoint_type }} == 'NodePort' ]; then
+          ext_ip=$(kubectl get nodes -o=jsonpath="{.items[0].status.addresses[?(@.type==\"ExternalIP\")].address}")
+          if [ "$ext_ip" == "" ]; then
+            ext_ip=$(kubectl get nodes -o=jsonpath="{.items[0].status.addresses[?(@.type==\"InternalIP\")].address}")
+          fi
+
+          if [ "$ext_ip" == "" ]; then
+            echo "Could not determine external endpoint for Keptn!"
+            exit 1
+          fi
+
+          port=$(kubectl -n keptn get service api-gateway-nginx -o=jsonpath="{.spec.ports[?(@.name==\"http\")].port}")
+          echo "::set-output name=KEPTN_API_URL::"http://$ext_ip:$port/api""
+          echo "::set-output name=KEPTN_HTTP_ENDPOINT::"$ext_ip:$port""
+        else
+          echo "No external endpoint can be auto-detected for service type ${{ steps.detect_keptn_endpoint_type.outputs.endpoint_type }} "
+          echo "Please refer to Keptn access options at https://keptn.sh/docs/0.16.x/operate/install/#access-options"
+        fi
