@@ -26,6 +26,10 @@ inputs:
     description: If true the Keptn instance will be uninstalled from the kubernetes context
     required: false
     default: false
+  KEPTN_HELM_CHART_REPO:
+    description: Helm repository from which Keptn helm chart is retrieved
+    required: false
+    default: https://charts.keptn.sh
 outputs:
   KEPTN_HTTP_ENDPOINT:
     description: Endpoint (host(:port)) on which the api gateway of the installed Keptn is reachable. Could be empty if it was not possible to autodetect it.
@@ -45,7 +49,7 @@ runs:
 
     - name: Add Keptn Helm chart repository
       shell: bash
-      run: helm repo add keptn https://charts.keptn.sh
+      run: helm repo add keptn ${{ inputs.KEPTN_HELM_CHART_REPO }}
 
     - name: Install Keptn in cluster
       shell: bash
