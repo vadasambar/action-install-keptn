@@ -27,7 +27,7 @@ inputs:
     required: false
     default: false
   KEPTN_HELM_CHART_REPO:
-    description: Helm repository from which Keptn is installed
+    description: Helm repository from which Keptn helm chart is retrieved
     required: false
     default: https://charts.keptn.sh
 outputs:

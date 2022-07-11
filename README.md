@@ -16,7 +16,7 @@ This repository contains GitHub Actions for installing and uninstalling Keptn in
 ``` 
 * `KUBECONFIG`: The location of the kubernetes configuration file. Defaults to `$HOME/.kube/config`.
 * `UNINSTALL`: Set to `true` if the Keptn instance should be removed from the kubernetes cluster
-* `KEPTN_HELM_CHART_REPO`: Helm repository from which Keptn is installed. Defaults to `https://charts.keptn.sh`.
+* `KEPTN_HELM_CHART_REPO`: Helm repository from which Keptn helm chart is retrieved. Defaults to `https://charts.keptn.sh`.
 
 **Outputs**:
 * `KEPTN_HTTP_ENDPOINT`: Endpoint (host(:port)) on which the api gateway of the installed Keptn is reachable. Could be empty if it was not possible to autodetect it.
