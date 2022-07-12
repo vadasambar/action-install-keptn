@@ -9,10 +9,9 @@ inputs:
     description: Helm values to set during install passed as a YAML multiline string
     required: false
     default: |-
-      control-plane:
-        apiGatewayNginx:
-          type: LoadBalancer
-      continuous-delivery:
+      apiGatewayNginx:
+        type: LoadBalancer
+      continuousDelivery:
         enabled: true
   KEPTN_NAMESPACE:
     description: Kubernetes namespace where Keptn will be installed
