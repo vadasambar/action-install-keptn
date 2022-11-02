@@ -8,17 +8,16 @@ This repository contains GitHub Actions for installing and uninstalling Keptn in
 |:--------------:|:-----------------------------------------------------------------------------------------------:|
 |   0.15, 0.16   |                            keptn-sandbox/action-install-keptn@0.2.0                             |
 |     0.17.0     |                            keptn-sandbox/action-install-keptn@0.3.0                             |
+|     0.19.x     |                            keptn-sandbox/action-install-keptn@0.4.0                             |
 
 ### Install Keptn
 
 **Inputs**:
 * `KEPTN_VERSION`: The version of Keptn that should be installed (e.g. `0.13.1`)
-* `HELM_VALUES`: Helm values using during installation passed a properly formatted multiline YAML string.  Defaults to 
+* `HELM_VALUES`: Helm values used during installation passed as properly formatted multiline YAML string.  Defaults to 
 ```yaml
       apiGatewayNginx:
         type: LoadBalancer
-      continuousDelivery:
-        enabled: true
 ``` 
 * `KUBECONFIG`: The location of the kubernetes configuration file. Defaults to `$HOME/.kube/config`.
 * `UNINSTALL`: Set to `true` if the Keptn instance should be removed from the kubernetes cluster
