@@ -6,19 +6,18 @@ This repository contains GitHub Actions for installing and uninstalling Keptn in
 
 | Keptn Version* | [action-install-keptn releases](https://github.com/keptn-sandbox/action-install-keptn/releases) |
 |:--------------:|:-----------------------------------------------------------------------------------------------:|
-|   0.15, 0.16   |                            keptn-sandbox/action-install-keptn@0.2.0                             |
-|     0.17.0     |                            keptn-sandbox/action-install-keptn@0.3.0                             |
+|   0.15, 0.16   |                            keptn-sandbox/action-install-keptn@v2.0.0                            |
+|     0.17.0     |                            keptn-sandbox/action-install-keptn@v3.0.0                            |
+|     0.19.x     |                            keptn-sandbox/action-install-keptn@v4.0.0                            |
 
 ### Install Keptn
 
 **Inputs**:
 * `KEPTN_VERSION`: The version of Keptn that should be installed (e.g. `0.13.1`)
-* `HELM_VALUES`: Helm values using during installation passed a properly formatted multiline YAML string.  Defaults to 
+* `HELM_VALUES`: Helm values used during installation passed as properly formatted multiline YAML string.  Defaults to 
 ```yaml
       apiGatewayNginx:
         type: LoadBalancer
-      continuousDelivery:
-        enabled: true
 ``` 
 * `KUBECONFIG`: The location of the kubernetes configuration file. Defaults to `$HOME/.kube/config`.
 * `UNINSTALL`: Set to `true` if the Keptn instance should be removed from the kubernetes cluster
@@ -29,7 +28,7 @@ This repository contains GitHub Actions for installing and uninstalling Keptn in
 * `KEPTN_API_URL`: HTTP URL of the Keptn API endpoint. Could be empty if it was not possible to determine a KEPTN_ENDPOINT.
 * `KEPTN_API_TOKEN`: A API token needed for the communication with Keptn
 
-If the `control-plane.apiGatewayNginx.type` value is not `LoadBalancer` or `NodePort` the action does not return an endpoint since there's no way to determine an address (host:port pair) that would expose the Keptn api gateway to the outside of the kubernetes cluster.
+If the `apiGatewayNginx.type` value is not `LoadBalancer` or `NodePort` the action does not return an endpoint since there's no way to determine an address (host:port pair) that would expose the Keptn api gateway to the outside of the kubernetes cluster.
 
 In such cases please refer to the [relevant keptn documentation](https://keptn.sh/docs/0.16.x/operate/install/#access-options) for your keptn version.
 
