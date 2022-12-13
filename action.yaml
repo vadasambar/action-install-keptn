@@ -5,6 +5,10 @@ inputs:
     description: The version of Keptn that should be installed (e.g. 0.16.0) if not specified latest available version will be used
     required: false
     default: ""
+  HELM_TIMEOUT:
+    description: This input is passed as a value to helm's `--timeout` flag
+    required: false
+    default: "5m"
   HELM_VALUES:
     description: Helm values to set during install passed as a YAML multiline string
     required: false
@@ -56,12 +60,12 @@ runs:
        ${{ inputs.HELM_VALUES }}
        EOF
        cat values.yaml
-       helm install keptn keptn/keptn --wait --create-namespace -n ${{ inputs.KEPTN_NAMESPACE}} -f values.yaml --version "${{ inputs.KEPTN_VERSION }}" --devel
+       helm install keptn keptn/keptn --wait --create-namespace -n ${{ inputs.KEPTN_NAMESPACE}} -f values.yaml --version "${{ inputs.KEPTN_VERSION }}" --devel --timeout ${{ input.HELM_TIMEOUT }}
 
     - name: Uninstall Keptn from cluster
       shell: bash
       if: ${{ inputs.UNINSTALL == 'true' }}
-      run: helm uninstall keptn -n ${{ inputs.KEPTN_NAMESPACE}} --wait
+      run: helm uninstall keptn -n ${{ inputs.KEPTN_NAMESPACE}} --wait --timeout ${{ input.HELM_TIMEOUT }}
 
     - name: Output Keptn API token to environment
       id: output_keptn_api_token_env
